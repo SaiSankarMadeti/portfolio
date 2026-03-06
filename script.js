@@ -5,6 +5,103 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // ===== Constellation Stars Background =====
+  const canvas = document.getElementById('stars-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    const hero = canvas.closest('.hero');
+    let stars = [];
+    let animId;
+    let isVisible = true;
+    const STAR_COUNT = 120;
+    const MAX_DIST = 120;
+
+    function resize() {
+      canvas.width = hero.offsetWidth;
+      canvas.height = hero.offsetHeight;
+    }
+
+    function createStars() {
+      stars = [];
+      for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.5 + 0.5,
+          dx: (Math.random() - 0.5) * 0.3,
+          dy: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.5 + 0.3,
+        });
+      }
+    }
+
+    function draw() {
+      if (!isVisible) {
+        cancelAnimationFrame(animId);
+        animId = null;
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw connections
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const dx = stars[i].x - stars[j].x;
+          const dy = stars[i].y - stars[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < MAX_DIST) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(162, 155, 254, ${0.15 * (1 - dist / MAX_DIST)})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(stars[i].x, stars[i].y);
+            ctx.lineTo(stars[j].x, stars[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw stars
+      stars.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 200, 255, ${s.opacity})`;
+        ctx.fill();
+
+        // Move
+        s.x += s.dx;
+        s.y += s.dy;
+
+        // Wrap around edges
+        if (s.x < 0) s.x = canvas.width;
+        if (s.x > canvas.width) s.x = 0;
+        if (s.y < 0) s.y = canvas.height;
+        if (s.y > canvas.height) s.y = 0;
+      });
+
+      animId = requestAnimationFrame(draw);
+    }
+
+    // Pause when hero is not visible, resume when it comes back
+    const observer = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+      if (isVisible && !animId) draw();
+      if (!isVisible && animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+    });
+    observer.observe(hero);
+
+    resize();
+    createStars();
+    draw();
+
+    window.addEventListener('resize', () => {
+      resize();
+      createStars();
+    });
+  }
+
   // ===== Tech stack icon injection (Devicon + Simple Icons fallback) =====
   // Primary: Devicon font icons (loaded via CDN CSS)
   const deviconMap = {
